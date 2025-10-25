@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncy Luchador Ultra</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 10px;
+            line-height: 1.3;
+        }
+        
+        #bossHealth {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        #shop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            display: none;
+            text-align: center;
+            border: 3px solid gold;
+            min-width: 400px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #FF6B35, #FF8C00);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 8px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        button:hover {
+            background: linear-gradient(45deg, #FF8C00, #FF6B35);
+            transform: scale(1.08);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 25px;
+            text-align: center;
+            border: 3px solid gold;
+            min-width: 500px;
+        }
+        
+        .rocket-charge {
+            display: inline-block;
+            width: 20px;
+            height: 10px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            margin: 0 2px;
+            border-radius: 2px;
+            box-shadow: 0 0 6px gold;
+        }
+        
+        .rocket-charge.empty {
+            background: #444;
+            box-shadow: none;
+        }
+        
+        .upgrade-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 4px solid gold;
+        }
+        
+        h1 {
+            color: gold;
+            text-shadow: 0 0 10px rgba(255,215,0,0.5);
+            margin-bottom: 20px;
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            margin: 5px 0;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff9900, #00ff00);
+            transition: width 0.3s;
+            border-radius: 8px;
+        }
+        
+        .boss-name {
+            color: #FFD700;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="ui">
+            <div>🏁 Дистанция: <span id="distance">0</span>m</div>
+            <div>💰 Деньги: $<span id="money">0</span></div>
+            <div>⚡ Скорость: <span id="speed">0</span></div>
+            <div>💣 Ракеты: <span id="rocketCharges"></span></div>
+            <div>🎯 Удар: <span id="rocketPower">100%</span></div>
+            <div>🍯 Знаток: <span id="tasteMaster">0%</span></div>
+            <div>🍀 Удача: <span id="luck">0%</span></div>
+            <div>🔄 Упругость: <span id="bounce">100%</span></div>
+        </div>
+        
+        <div id="bossHealth">
+            <div class="boss-name" id="bossName">БЕРТАНИК</div>
+            <div class="health-bar">
+                <div class="health-fill" id="bossHealthFill" style="width: 100%"></div>
+            </div>
+            <div id="bossHealthText">100/100</div>
+        </div>
+        
+        <div id="controls">
+            <div>💥 ЛКМ - Реактивный удар</div>
+            <div>🔄 ПРОБЕЛ - Перезапуск</div>
+            <div>🎯 Наведи на канат и тяни мышкой!</div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>🎭 Bouncy Luchador ULTRA 🎭</h1>
+            <p>Точные текстуры как в оригинальном Burrito Bison!</p>
+            <p>🐻 Настоящие гумми-мишки из игры</p>
+            <p>🎯 Канаты как в оригинале</p>
+            <button onclick="startGame()">🚀 НАЧАТЬ ПОЛЕТ!</button>
+        </div>
+        
+        <div id="shop">
+            <h2>🛒 Магазин улучшений</h2>
+            <div id="shopItems"></div>
+            <button onclick="closeShop()">🎮 Продолжить игру</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const distanceElement = document.getElementById('distance');
+        const moneyElement = document.getElementById('money');
+        const speedElement = document.getElementById('speed');
+        const rocketChargesElement = document.getElementById('rocketCharges');
+        const rocketPowerElement = document.getElementById('rocketPower');
+        const tasteMasterElement = document.getElementById('tasteMaster');
+        const luckElement = document.getElementById('luck');
+        const bounceElement = document.getElementById('bounce');
+        const bossHealth = document.getElementById('bossHealth');
+        const bossName = document.getElementById('bossName');
+        const bossHealthFill = document.getElementById('bossHealthFill');
+        const bossHealthText = document.getElementById('bossHealthText');
+        const startScreen = document.getElementById('startScreen');
+        const shop = document.getElementById('shop');
+        const shopItems = document.getElementById('shopItems');
+
+        const WORLD_WIDTH = 80000;
+        const GROUND_LEVEL = 520;
+
+        let gameStarted = false;
+        let distance = 0;
+        let totalMoney = 0;
+        let gameSpeed = 0;
+        let isRocketActive = false;
+        let rocketCharges = 3;
+        let maxRocketCharges = 3;
+        let rocketPower = 1.0;
+        let cameraX = 0;
+        let particles = [];
+        let moneyCollectedThisRun = 0;
+        
+        let bouncePower = 1.0;
+        let tasteMaster = 0.0;
+        let luck = 0.0;
+        let moneyMultiplier = 1.0;
+
+        // Класс гумми-мишек КАК В ОРИГИНАЛЬНОМ BURRITO BISON
+        class GummyBear {
+            constructor(x) {
+                this.x = x;
+                this.y = GROUND_LEVEL - 25;
+                this.size = 25;
+                this.colors = [
+                    {body: '#FF6B8B', highlight: '#FF8FA6'}, // Розовый
+                    {body: '#4CAF50', highlight: '#66BB6A'}, // Зеленый
+                    {body: '#2196F3', highlight: '#42A5F5'}, // Синий
+                    {body: '#FFC107', highlight: '#FFD54F'}, // Желтый
+                    {body: '#9C27B0', highlight: '#AB47BC'}  // Фиолетовый
+                ];
+                this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
+                this.squish = 1;
+                this.squishDirection = 0.03;
+                this.collected = false;
+                this.animation = Math.random() * Math.PI * 2;
+                this.bonus = Math.random() < 0.1;
+            }
+
+            update() {
+                this.squish += this.squishDirection;
+                if (this.squish > 1.3 || this.squish < 0.7) {
+                    this.squishDirection *= -1;
+                }
+                this.animation += 0.05;
+            }
+
+            draw() {
+                if (this.collected) return;
+                
+                ctx.save();
+                ctx.translate(-cameraX, 0);
+                ctx.translate(this.x, this.y);
+                ctx.scale(1, this.squish);
+                
+                const bounce = Math.sin(this.animation) * 2;
+                
+                // Бонусный мишка светится
+                if (this.bonus) {
+                    ctx.shadowColor = this.color.highlight;
+                    ctx.shadowBlur = 10;
+                }
+                
+                // ТЕЛО МИШКИ КАК В ОРИГИНАЛЕ - овальное с градиентом
+                const gradient = ctx.createRadialGradient(0, -5, 0, 0, 0, this.size);
+                gradient.addColorStop(0, this.color.highlight);
+                gradient.addColorStop(1, this.color.body);
+                
+                ctx.fillStyle = gradient;
+                
+                // Основное тело - овальное
+                ctx.beginPath();
+                ctx.ellipse(0, bounce, this.size * 0.8, this.size, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Живот - светлый круг
+                ctx.fillStyle = this.color.highlight;
+                ctx.beginPath();
+                ctx.arc(0, bounce + 3, this.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Глаза - черные точки
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.3, bounce - this.size * 0.2, this.size * 0.1, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.3, bounce - this.size * 0.2, this.size * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Блики в глазах
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.35, bounce - this.size * 0.25, this.size * 0.05, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.25, bounce - this.size * 0.25, this.size * 0.05, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Нос - маленький черный треугольник
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.moveTo(0, bounce - this.size * 0.1);
+                ctx.lineTo(-this.size * 0.1, bounce);
+                ctx.lineTo(this.size * 0.1, bounce);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Улыбка - простая дуга
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, bounce + this.size * 0.2, this.size * 0.3, 0.2, Math.PI - 0.2);
+                ctx.stroke();
+                
+                // Лапки - маленькие кружки
+                ctx.fillStyle = this.color.body;
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.5, bounce + this.size * 0.6, this.size * 0.15, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.5, bounce + this.size * 0.6, this.size * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.3, bounce + this.size * 0.8, this.size * 0.12, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.3, bounce + this.size * 0.8, this.size * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+            
+            collect() {
+                if (!this.collected) {
+                    this.collected = true;
+                    
+                    let money = 10;
+                    if (this.bonus) money *= 3;
+                    money *= moneyMultiplier;
+                    
+                    if (Math.random() < luck) {
+                        money *= 2;
+                        createLuckEffect(this.x, this.y);
+                    }
+                    
+                    addMoney(Math.floor(money));
+                    createMoneyEffect(this.x, this.y);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // Класс канатов КАК В ОРИГИНАЛЬНОМ BURRITO BISON
+        class Spring {
+            constructor(x) {
+                this.x = x;
+                this.y = GROUND_LEVEL - 10;
+                this.width = 60;
+                this.height = 25;
+                this.ready = true;
+                this.pullDirection = null;
+                this.pullPower = 0;
+                this.cooldown = 0;
+                this.hovered = false;
+            }
+
+            update() {
+                if (this.cooldown > 0) {
+                    this.cooldown--;
+                    this.ready = false;
+                } else {
+                    this.ready = true;
+                }
+                this.hovered = false;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(-cameraX, 0);
+                
+                // ТЕКСТУРА КАНАТА КАК В BURRITO BISON
+                // Основание - темно-коричневое
+                ctx.fillStyle = '#5D4037';
+                ctx.fillRect(this.x - this.width/2, this.y, this.width, 8);
+                
+                // Пружина - оранжевая с черными витками
+                if (this.ready) {
+                    ctx.fillStyle = '#FF9800';
+                } else {
+                    ctx.fillStyle = '#795548';
+                }
+                
+                const springHeight = 20;
+                ctx.fillRect(this.x - this.width/2, this.y - springHeight, this.width, springHeight);
+                
+                // Черные витки пружины (как в оригинале)
+                ctx.fillStyle = '#5D4037';
+                for (let i = 0; i < 4; i++) {
+                    const coilY = this.y - springHeight + 5 + i * 5;
+                    ctx.fillRect(this.x - this.width/2, coilY, this.width, 2);
+                }
+                
+                // Верхняя платформа - красная
+                ctx.fillStyle = '#D32F2F';
+                ctx.fillRect(this.x - this.width/2, this.y - springHeight - 6, this.width, 6);
+                
+                ctx.restore();
+            }
+
+            checkHover(mouseX, mouseY) {
+                const canvasX = mouseX + cameraX;
+                return (canvasX > this.x - this.width/2 && 
+                        canvasX < this.x + this.width/2 &&
+                        mouseY > this.y - 35 && 
+                        mouseY < this.y + 10 &&
+                        this.ready);
+            }
+
+            startPull(startX, startY) {
+                this.pullDirection = null;
+                this.pullPower = 0;
+                pullStartX = startX;
+                pullStartY = startY;
+            }
+
+            updatePull(currentX, currentY) {
+                const dx = currentX - pullStartX;
+                const dy = currentY - pullStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                this.pullPower = Math.min(distance / 50, 2.0);
+                
+                // Определяем направление
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    this.pullDirection = dx > 0 ? 'right' : 'left';
+                } else {
+                    this.pullDirection = dy > 0 ? 'down' : 'up';
+                }
+                
+                pullDirection = this.pullDirection;
+                pullPower = this.pullPower;
+            }
+
+            launchPlayer(player) {
+                if (!this.ready || !this.pullDirection) return false;
+                
+                const basePower = 30;
+                const power = basePower + this.pullPower * 20;
+                
+                switch(this.pullDirection) {
+                    case 'up':
+                        player.vy = -power * bouncePower;
+                        player.vx *= 1.1;
+                        break;
+                    case 'down':
+                        player.vy = power * 0.6;
+                        player.vx *= 1.3;
+                        break;
+                    case 'right':
+                        player.vx += power * 1.0;
+                        player.vy = -20 * bouncePower;
+                        break;
+                    case 'left':
+                        player.vx -= power * 0.8;
+                        player.vy = -22 * bouncePower;
+                        break;
+                }
+                
+                this.cooldown = 80;
+                this.ready = false;
+                this.pullDirection = null;
+                this.pullPower = 0;
+                
+                createSpringEffect(this.x, this.y - 30);
+                return true;
+            }
+        }
+
+        // Босс Бертаник
+        class Bertanic {
+            constructor(x) {
+                this.x = x;
+                this.y = GROUND_LEVEL - 60;
+                this.width = 120;
+                this.height = 140;
+                this.name = 'БЕРТАНИК';
+                this.health = 100;
+                this.maxHealth = 100;
+                this.active = true;
+                this.hitCooldown = 0;
+            }
+
+            update() {
+                if (this.hitCooldown > 0) {
+                    this.hitCooldown--;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                
+                ctx.save();
+                ctx.translate(-cameraX, 0);
+                
+                if (this.hitCooldown > 0) {
+                    ctx.fillStyle = '#FF6B6B';
+                } else {
+                    ctx.fillStyle = '#87CEEB';
+                }
+                
+                ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                
+                ctx.fillStyle = '#E8F4F8';
+                ctx.fillRect(this.x - this.width/2 + 10, this.y - this.height/2 + 10, this.width - 20, this.height - 60);
+                
+                ctx.fillStyle = '#FF6B35';
+                ctx.fillRect(this.x - this.width/2 + 15, this.y - 20, this.width - 30, 40);
+                
+                ctx.restore();
+            }
+
+            checkCollision(player) {
+                if (!this.active || this.hitCooldown > 0) return false;
+                
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.width/2 + this.width/3 && player.vy > 0) {
+                    this.takeDamage(20);
+                    
+                    player.vy = -25 * bouncePower;
+                    player.vx += 8;
+                    
+                    createBossHitEffect(this.x, this.y);
+                    return true;
+                }
+                return false;
+            }
+
+            takeDamage(damage) {
+                this.health -= damage;
+                this.hitCooldown = 15;
+                
+                if (this.health <= 0) {
+                    this.active = false;
+                    createBossDefeatEffect(this.x, this.y);
+                    addMoney(200);
+                    bossHealth.style.display = 'none';
+                }
+                
+                this.updateHealthBar();
+            }
+
+            updateHealthBar() {
+                const healthPercent = (this.health / this.maxHealth) * 100;
+                bossHealthFill.style.width = healthPercent + '%';
+                bossHealthText.textContent = `${this.health}/${this.maxHealth}`;
+            }
+        }
+
+        class Player {
+            constructor() {
+                this.x = 100;
+                this.y = 450;
+                this.width = 45;
+                this.height = 70;
+                this.vx = 15;
+                this.vy = 0;
+                this.gravity = 0.8;
+                this.isLaunched = false;
+                this.color = '#FF6B35';
+                this.maskColor = '#4169E1';
+                this.boostPower = 0;
+                this.rotation = 0;
+                this.legsAnimation = 0;
+                this.armAnimation = 0;
+                this.slippery = false;
+            }
+
+            update() {
+                if (this.isLaunched) {
+                    this.vy += this.gravity;
+                    this.x += this.vx + this.boostPower;
+                    this.y += this.vy;
+                    
+                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    this.slippery = currentSpeed > 50;
+                    
+                    if (this.boostPower > 0) {
+                        this.boostPower *= 0.95;
+                    }
+                    
+                    this.legsAnimation += 0.2;
+                    this.armAnimation += 0.15;
+                    
+                    if (this.y < GROUND_LEVEL - this.height/2) {
+                        this.rotation = this.vy * 0.03;
+                    } else {
+                        this.rotation = 0;
+                    }
+                    
+                    if (this.y > GROUND_LEVEL - this.height/2) {
+                        this.y = GROUND_LEVEL - this.height/2;
+                        this.vy = -this.vy * 0.7 * bouncePower;
+                        
+                        if (tasteMaster > 0) {
+                            this.vx *= (0.98 - tasteMaster * 0.1);
+                        } else {
+                            this.vx *= 0.95;
+                        }
+                        
+                        createGroundImpact(this.x, this.y + this.height/2);
+                        
+                        if (Math.abs(this.vy) < 2) {
+                            this.vy = 0;
+                        }
+                    }
+                    
+                    cameraX = this.x - 200;
+                    if (cameraX < 0) cameraX = 0;
+                    if (cameraX > WORLD_WIDTH - 800) cameraX = WORLD_WIDTH - 800;
+                    
+                    if (this.x > WORLD_WIDTH - 100 || this.vx < 1) {
+                        endRun();
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(-cameraX, 0);
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
+                if (this.slippery) {
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 15;
+                }
+                
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height - 20);
+                
+                ctx.beginPath();
+                ctx.arc(0, -this.height/2 - 10, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = this.maskColor;
+                ctx.fillRect(-this.width/2, -this.height/2 - 25, this.width, 15);
+                
+                const legSwing = Math.sin(this.legsAnimation) * 10;
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-this.width/2 + 5, this.height/2 - 20, 15, 25 + legSwing);
+                ctx.fillRect(this.width/2 - 20, this.height/2 - 20, 15, 25 - legSwing);
+                
+                const armSwing = Math.sin(this.armAnimation) * 8;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.width/2 - 10, -this.height/2 + 10, 12, 30 + armSwing);
+                ctx.fillRect(this.width/2 - 2, -this.height/2 + 10, 12, 30 - armSwing);
+                
+                if (isRocketActive) {
+                    ctx.fillStyle = '#FF4500';
+                    ctx.beginPath();
+                    ctx.moveTo(-this.width/2, this.height/2);
+                    ctx.lineTo(0, this.height/2 + 50);
+                    ctx.lineTo(this.width/2, this.height/2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+
+            launch() {
+                this.isLaunched = true;
+                this.vy = -22;
+            }
+
+            activateRocket() {
+                if (rocketCharges > 0 && this.isLaunched) {
+                    isRocketActive = true;
+                    rocketCharges--;
+                    
+                    this.vy = 30 * rocketPower;
+                    
+                    if (Math.random() < luck) {
+                        rocketCharges++;
+                        createLuckEffect(this.x, this.y);
+                    }
+                    
+                    createExplosion(this.x, this.y + this.height/2);
+                    
+                    setTimeout(() => {
+                        isRocketActive = false;
+                    }, 300);
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color, velocity, size, life) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = velocity.x;
+                this.vy = velocity.y;
+                this.size = size;
+                this.life = life;
+                this.maxLife = life;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.2;
+                this.life--;
+                this.size *= 0.95;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(-cameraX, 0);
+                const alpha = this.life / this.maxLife;
+                ctx.fillStyle = this.color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function addMoney(amount) {
+            moneyCollectedThisRun += amount;
+        }
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < 25; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 8;
+                particles.push(new Particle(
+                    x, y,
+                    `rgb(255, ${100 + Math.random() * 155}, 0)`,
+                    {x: Math.cos(angle) * speed, y: Math.sin(angle) * speed},
+                    4 + Math.random() * 8,
+                    30 + Math.random() * 30
+                ));
+            }
+        }
+
+        function createGroundImpact(x, y) {
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    '#8B4513',
+                    {x: (Math.random() - 0.5) * 10, y: -Math.random() * 8},
+                    2 + Math.random() * 4,
+                    20 + Math.random() * 20
+                ));
+            }
+        }
+
+        function createMoneyEffect(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    'rgb(255, 215, 0)',
+                    {x: (Math.random() - 0.5) * 6, y: -Math.random() * 4},
+                    3 + Math.random() * 3,
+                    40 + Math.random() * 20
+                ));
+            }
+        }
+
+        function createLuckEffect(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    'rgb(0, 255, 255)',
+                    {x: (Math.random() - 0.5) * 8, y: -Math.random() * 6},
+                    4 + Math.random() * 4,
+                    50 + Math.random() * 30
+                ));
+            }
+        }
+
+        function createSpringEffect(x, y) {
+            for (let i = 0; i < 20; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    '#FF8C00',
+                    {x: (Math.random() - 0.5) * 15, y: -Math.random() * 25},
+                    4 + Math.random() * 6,
+                    30 + Math.random() * 25
+                ));
+            }
+        }
+
+        function createBossHitEffect(x, y) {
+            for (let i = 0; i < 25; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    '#FF6B6B',
+                    {x: (Math.random() - 0.5) * 15, y: -Math.random() * 12},
+                    4 + Math.random() * 6,
+                    30 + Math.random() * 25
+                ));
+            }
+        }
+
+        function createBossDefeatEffect(x, y) {
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle(
+                    x, y,
+                    '#FFD700',
+                    {x: (Math.random() - 0.5) * 25, y: -Math.random() * 20},
+                    6 + Math.random() * 8,
+                    50 + Math.random() * 30
+                ));
+            }
+        }
+
+        const player = new Player();
+        const gummyBears = [];
+        const springs = [];
+        const bertanic = new Bertanic(2000);
+
+        // Создание гумми-мишек
+        for (let i = 0; i < 200; i++) {
+            gummyBears.push(new GummyBear(300 + i * 400 + Math.random() * 200));
+        }
+
+        // Создание канатов
+        const springPositions = [1500, 3000, 5000, 7000, 9000, 12000, 15000, 18000, 22000, 26000, 30000];
+        for (let pos of springPositions) {
+            springs.push(new Spring(pos));
+        }
+
+        let isPullingSpring = false;
+        let currentSpring = null;
+        let pullStartX = 0;
+        let pullStartY = 0;
+        let pullDirection = null;
+        let pullPower = 0;
+
+        function startGame() {
+            gameStarted = true;
+            startScreen.style.display = 'none';
+            resetGame();
+        }
+
+        function resetGame() {
+            player.x = 100;
+            player.y = 450;
+            player.vx = 15;
+            player.vy = 0;
+            player.isLaunched = false;
+            distance = 0;
+            gameSpeed = 0;
+            rocketCharges = maxRocketCharges;
+            isRocketActive = false;
+            cameraX = 0;
+            particles = [];
+            moneyCollectedThisRun = 0;
+            isPullingSpring = false;
+            currentSpring = null;
+            
+            bertanic.health = bertanic.maxHealth;
+            bertanic.active = true;
+            bertanic.hitCooldown = 0;
+            bossHealth.style.display = 'block';
+            bertanic.updateHealthBar();
+            
+            gummyBears.forEach(bear => bear.collected = false);
+            springs.forEach(spring => {
+                spring.ready = true;
+                spring.cooldown = 0;
+            });
+            
+            setTimeout(() => {
+                player.launch();
+            }, 1000);
+        }
+
+        function endRun() {
+            totalMoney += moneyCollectedThisRun;
+            saveGame();
+            showShop();
+        }
+
+        function showShop() {
+            shop.style.display = 'block';
+            updateShop();
+        }
+
+        function closeShop() {
+            shop.style.display = 'none';
+            resetGame();
+        }
+
+        function updateShop() {
+            shopItems.innerHTML = `
+                <div style="color: gold; font-size: 20px; margin: 10px 0;">🎉 Заработано: $${moneyCollectedThisRun}</div>
+                <div style="font-size: 18px; margin: 10px 0;">💰 Всего: $${totalMoney}</div>
+                
+                <div class="upgrade-item">
+                    <div>💣 Реактивные удары</div>
+                    <div>+1 заряд ракетного удара</div>
+                    <button onclick="buyUpgrade('rocket')">$150</button>
+                </div>
+                
+                <div class="upgrade-item">
+                    <div>💥 Сила удара</div>
+                    <div>+30% мощности отскока</div>
+                    <button onclick="buyUpgrade('power')">$200</button>
+                </div>
+                
+                <div class="upgrade-item">
+                    <div>🔄 Упругий костюм</div>
+                    <div>+25% упругости отскоков</div>
+                    <button onclick="buyUpgrade('bounce')">$180</button>
+                </div>
+                
+                <div class="upgrade-item">
+                    <div>🍯 Знаток вкуса</div>
+                    <div>Сохраняй скорость при приземлении</div>
+                    <button onclick="buyUpgrade('taste')">$250</button>
+                </div>
+                
+                <div class="upgrade-item">
+                    <div>🍀 Удача</div>
+                    <div>Шанс бонусов и двойных денег</div>
+                    <button onclick="buyUpgrade('luck')">$300</button>
+                </div>
+                
+                <div class="upgrade-item">
+                    <div>💰 Карманик</div>
+                    <div>+50% денег за мишек</div>
+                    <button onclick="buyUpgrade('money')">$400</button>
+                </div>
+            `;
+        }
+
+        function buyUpgrade(type) {
+            let cost = 0;
+            switch(type) {
+                case 'rocket':
+                    cost = 150;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        maxRocketCharges++;
+                    }
+                    break;
+                case 'power':
+                    cost = 200;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        rocketPower += 0.3;
+                    }
+                    break;
+                case 'bounce':
+                    cost = 180;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        bouncePower += 0.25;
+                    }
+                    break;
+                case 'taste':
+                    cost = 250;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        tasteMaster += 0.2;
+                    }
+                    break;
+                case 'luck':
+                    cost = 300;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        luck += 0.15;
+                    }
+                    break;
+                case 'money':
+                    cost = 400;
+                    if (totalMoney >= cost) {
+                        totalMoney -= cost;
+                        moneyMultiplier += 0.5;
+                    }
+                    break;
+            }
+            updateShop();
+        }
+
+        function saveGame() {
+            localStorage.setItem('bouncyLuchadorMoney', totalMoney);
+            localStorage.setItem('bouncyLuchadorRocketPower', rocketPower);
+            localStorage.setItem('bouncyLuchadorMaxCharges', maxRocketCharges);
+            localStorage.setItem('bouncyLuchadorBounce', bouncePower);
+            localStorage.setItem('bouncyLuchadorTaste', tasteMaster);
+            localStorage.setItem('bouncyLuchadorLuck', luck);
+            localStorage.setItem('bouncyLuchadorMoneyMultiplier', moneyMultiplier);
+        }
+
+        function loadGame() {
+            totalMoney = parseInt(localStorage.getItem('bouncyLuchadorMoney')) || 0;
+            rocketPower = parseFloat(localStorage.getItem('bouncyLuchadorRocketPower')) || 1.0;
+            maxRocketCharges = parseInt(localStorage.getItem('bouncyLuchadorMaxCharges')) || 3;
+            bouncePower = parseFloat(localStorage.getItem('bouncyLuchadorBounce')) || 1.0;
+            tasteMaster = parseFloat(localStorage.getItem('bouncyLuchadorTaste')) || 0.0;
+            luck = parseFloat(localStorage.getItem('bouncyLuchadorLuck')) || 0.0;
+            moneyMultiplier = parseFloat(localStorage.getItem('bouncyLuchadorMoneyMultiplier')) || 1.0;
+        }
+
+        function updateUI() {
+            distanceElement.textContent = Math.floor(distance);
+            moneyElement.textContent = totalMoney + moneyCollectedThisRun;
+            speedElement.textContent = Math.floor(gameSpeed);
+            
+            let chargesDisplay = '';
+            for (let i = 0; i < maxRocketCharges; i++) {
+                if (i < rocketCharges) {
+                    chargesDisplay += '<div class="rocket-charge"></div>';
+                } else {
+                    chargesDisplay += '<div class="rocket-charge empty"></div>';
+                }
+            }
+            rocketChargesElement.innerHTML = chargesDisplay;
+            
+            rocketPowerElement.textContent = Math.floor(rocketPower * 100) + '%';
+            tasteMasterElement.textContent = Math.floor(tasteMaster * 100) + '%';
+            luckElement.textContent = Math.floor(luck * 100) + '%';
+            bounceElement.textContent = Math.floor(bouncePower * 100) + '%';
+        }
+
+        function drawBackground() {
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#E0F6FF');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, 400);
+            
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, GROUND_LEVEL, canvas.width, canvas.height - GROUND_LEVEL);
+            
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, GROUND_LEVEL, canvas.width, 10);
+        }
+
+        function handleMouseMove(e) {
+            if (!gameStarted) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            if (isPullingSpring && currentSpring) {
+                currentSpring.updatePull(mouseX, mouseY);
+            }
+        }
+
+        function handleMouseDown(e) {
+            if (!gameStarted) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Ищем канат под курсором
+            for (let spring of springs) {
+                if (spring.checkHover(mouseX, mouseY)) {
+                    isPullingSpring = true;
+                    currentSpring = spring;
+                    spring.startPull(mouseX, mouseY);
+                    break;
+                }
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (!gameStarted || !isPullingSpring || !currentSpring) return;
+            
+            if (currentSpring.pullDirection) {
+                currentSpring.launchPlayer(player);
+            }
+            
+            isPullingSpring = false;
+            currentSpring = null;
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            
+            particles = particles.filter(particle => particle.life > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            gummyBears.forEach(bear => {
+                bear.update();
+                bear.draw();
+            });
+            
+            springs.forEach(spring => {
+                spring.update();
+                spring.draw();
+            });
+            
+            if (bertanic.active) {
+                bertanic.update();
+                bertanic.draw();
+                bertanic.checkCollision(player);
+            }
+            
+            player.update();
+            player.draw();
+            
+            gummyBears.forEach(bear => {
+                if (!bear.collected) {
+                    const dx = player.x - bear.x;
+                    const dy = player.y - bear.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < player.width/2 + bear.size && player.vy > 0) {
+                        player.vy = -18 * bouncePower;
+                        
+                        if (tasteMaster > 0) {
+                            player.vx *= (1.0 + tasteMaster * 0.1);
+                        } else {
+                            player.vx += 3;
+                        }
+                        
+                        bear.collect();
+                    }
+                }
+            });
+            
+            if (player.isLaunched) {
+                distance = player.x;
+                gameSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+            }
+            
+            if (rocketCharges < maxRocketCharges && Math.random() < 0.003) {
+                rocketCharges++;
+            }
+            
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+
+        canvas.addEventListener('click', (e) => {
+            if (gameStarted && !isPullingSpring) {
+                player.activateRocket();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted && e.code === 'Space') {
+                startGame();
+                return;
+            }
+            
+            if (gameStarted) {
+                if (e.code === 'Space') {
+                    resetGame();
+                }
+            }
+        });
+
+        loadGame();
+        gameLoop();
+    </script>
+</body>
+</html>
